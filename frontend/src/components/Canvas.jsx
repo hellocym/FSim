@@ -99,7 +99,8 @@ const Canvas = () => {
         'drag-element',
         'drag-canvas', 
         'zoom-canvas',
-        'drag-node'
+        'drag-node',
+        'click-select'
       ],
       plugins: [
         {
@@ -227,19 +228,18 @@ const Canvas = () => {
     graph.on('node:dblclick', async (e) => {
       console.log('双击删除事件触发:', e);
       
-      const { target } = e;
-      if (!target || target.type !== 'node') {
-        console.warn('双击事件中目标不是节点');
+      // 获取节点ID - G6 v5中通常在e.itemId中
+      const nodeId = e.itemId || e.target?.id || e.item?.id;
+      
+      if (!nodeId) {
+        console.warn('无法获取节点ID');
         return;
       }
       
-      const nodeId = target.id;
       console.log('双击删除节点ID:', nodeId);
       
       // 获取节点数据
       const nodeData = graph.getNodeData(nodeId);
-      console.log('节点数据:', nodeData);
-      
       if (!nodeData) {
         console.warn('无法获取节点数据');
         return;
