@@ -114,14 +114,12 @@ const Canvas = () => {
           lineWidth: 2,
           radius: 8,
           labelFill: '#000',
-          labelPlacement: 'center',
-        },
-        labelShape: {
-          position: 'bottom',
-          offsetY: 10,
-          textAlign: 'center',
-          fontSize: 12,
-          fill: '#000',
+          labelPlacement: 'bottom',
+          labelOffsetY: 15,
+          labelFontSize: 12,
+          labelBackgroundFill: 'rgba(255, 255, 255, 0.8)',
+          labelBackgroundRadius: 4,
+          labelBackgroundPadding: [2, 4],
         },
       },
       edge: {
@@ -306,15 +304,16 @@ const Canvas = () => {
           iconText: getMachineIcon(machine.type),
           iconFill: '#000',
           iconFontSize: 24,
+          labelText: machine.name,
+          labelBackgroundFill: 'rgba(255, 255, 255, 0.8)',
+          labelBackgroundRadius: 4,
+          labelBackgroundPadding: [2, 4],
+          labelFontSize: 12,
+          labelFill: '#000',
+          labelPlacement: 'bottom',
+          labelOffsetY: 0,
         },
-        labelCfg: {
-          position: 'bottom',
-          offset: 100,
-          style: {
-            fill: '#000',
-            fontSize: 12,
-          },
-        },
+        
       };
       
       console.log(`机器 ${machine.id} (${machine.name}) 最终节点:`, node);

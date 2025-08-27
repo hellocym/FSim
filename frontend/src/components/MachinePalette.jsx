@@ -31,7 +31,7 @@ const MachinePalette = ({ onAddMachine }) => {
   };
 
   return (
-    <Card title="机器库" size="small" style={{ height: '100%' }}>
+    <Card title="组件库" size="small" style={{ height: '100%' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {machineTypes.map((machine) => (
           <div
