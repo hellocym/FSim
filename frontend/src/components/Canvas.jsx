@@ -107,6 +107,36 @@ const Canvas = () => {
           type: 'grid-line',
           follow: false,
         },
+        {
+          type: 'contextmenu',
+          trigger: 'contextmenu',
+          onClick: async (value, target, graph) => {
+            console.log('G6右键菜单点击:', { value, target });
+            if (value === 'delete') {
+              // 从全局变量中获取当前右键的节点ID
+              const nodeId = window.currentContextMenuNodeId;
+              console.log('准备删除节点ID:', nodeId);
+              if (nodeId) {
+                await handleDeleteMachine(nodeId);
+              } else {
+                console.warn('无法获取节点ID');
+              }
+            }
+          },
+          getItems: (e) => {
+            console.log('G6获取右键菜单项:', e);
+            if (e.targetType === 'node') {
+              // 保存当前右键的节点ID到全局变量
+              window.currentContextMenuNodeId = e.itemId || e.target?.id;
+              console.log('保存右键节点ID:', window.currentContextMenuNodeId);
+              return [
+                { name: '删除机器', value: 'delete' },
+                { name: '查看详情', value: 'detail' },
+              ];
+            }
+            return [];
+          },
+        },
       ],
       node: {
         type: 'rect',
@@ -222,41 +252,7 @@ const Canvas = () => {
     //   // 连线逻辑
     // });
 
-    // 添加双击删除机器功能
-    graph.on('node:dblclick', async (e) => {
-      console.log('双击删除事件触发:', e);
-      
-      // 获取节点ID - G6 v5中通常在e.itemId中
-      const nodeId = e.itemId || e.target?.id || e.item?.id;
-      
-      if (!nodeId) {
-        console.warn('无法获取节点ID');
-        return;
-      }
-      
-      console.log('双击删除节点ID:', nodeId);
-      
-      // 获取节点数据
-      const nodeData = graph.getNodeData(nodeId);
-      if (!nodeData) {
-        console.warn('无法获取节点数据');
-        return;
-      }
-      
-      const machineName = nodeData.label || nodeData.data?.machineData?.name || '未知机器';
-      
-      // 确认删除
-      if (window.confirm(`确定要删除机器 "${machineName}" 吗？`)) {
-        try {
-          console.log('开始删除机器:', nodeId);
-          await machineAPI.delete(nodeId);
-          console.log('机器删除成功，刷新数据');
-          fetchData();
-        } catch (error) {
-          console.error('删除机器失败:', error);
-        }
-      }
-    });
+    // 右键菜单功能已通过G6 contextmenu插件实现
 
     graphRef.current = graph;
     
@@ -492,6 +488,36 @@ const Canvas = () => {
       await fetchData();
     } catch (error) {
       console.error('添加机器失败:', error);
+    }
+  };
+
+  const handleDeleteMachine = async (nodeId) => {
+    if (!nodeId) {
+      console.warn('无法获取节点ID');
+      return;
+    }
+    
+    console.log('右键删除节点ID:', nodeId);
+    
+    // 获取节点数据
+    const nodeData = graphRef.current?.getNodeData(nodeId);
+    if (!nodeData) {
+      console.warn('无法获取节点数据');
+      return;
+    }
+    
+    const machineName = nodeData.label || nodeData.data?.machineData?.name || '未知机器';
+    
+    // 确认删除
+    if (window.confirm(`确定要删除机器 "${machineName}" 吗？`)) {
+      try {
+        console.log('开始删除机器:', nodeId);
+        await machineAPI.delete(nodeId);
+        console.log('机器删除成功，刷新数据');
+        fetchData();
+      } catch (error) {
+        console.error('删除机器失败:', error);
+      }
     }
   };
 
