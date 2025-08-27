@@ -98,7 +98,8 @@ const Canvas = () => {
       behaviors: [
         'drag-element',
         'drag-canvas', 
-        'zoom-canvas'
+        'zoom-canvas',
+        'drag-node'
       ],
       plugins: [
         {
@@ -142,7 +143,8 @@ const Canvas = () => {
     // 图表事件监听
     
     // 监听元素拖拽结束事件
-    graph.on('element:dragend', async (e) => {
+    // 监听节点拖拽结束事件
+    graph.on('node:dragend', async (e) => {
       const { target } = e;
       console.log('拖拽结束事件:', e);
       
@@ -153,22 +155,59 @@ const Canvas = () => {
       const nodeId = target.id;
       console.log(`拖拽结束，节点ID: ${nodeId}`);
       
-      // 获取节点的当前位置
-      const nodeData = graph.getNodeData(nodeId);
-      console.log('拖拽结束节点数据:', nodeData);
+      // 尝试多种方式获取拖拽后的位置
+      let x, y;
       
-      if (!nodeData) {
-        console.warn('无法获取节点数据');
+      // 方法1: 从事件对象中获取
+      if (e.x !== undefined && e.y !== undefined) {
+        x = e.x;
+        y = e.y;
+        console.log('从事件对象获取坐标:', { x, y });
+      }
+      
+      // 方法2: 从target中获取
+      if ((x === undefined || y === undefined) && target.style) {
+        x = target.style.x;
+        y = target.style.y;
+        console.log('从target.style获取坐标:', { x, y });
+      }
+      
+      // 方法3: 从getNodeData获取
+      if (x === undefined || y === undefined) {
+        const nodeData = graph.getNodeData(nodeId);
+        x = nodeData?.style?.x;
+        y = nodeData?.style?.y;
+        console.log('从getNodeData获取坐标:', { x, y });
+        console.log('完整节点数据:', nodeData);
+      }
+      
+      // 方法4: 从图表的节点位置获取
+      if (x === undefined || y === undefined) {
+        try {
+          const nodePosition = graph.getNodePosition(nodeId);
+          if (nodePosition) {
+            x = nodePosition.x;
+            y = nodePosition.y;
+            console.log('从getNodePosition获取坐标:', { x, y });
+          }
+        } catch (err) {
+          console.warn('getNodePosition方法不可用:', err.message);
+        }
+      }
+      
+      console.log(`最终获取的拖拽结束坐标: (${x}, ${y})`);
+      
+      if (x === undefined || y === undefined || isNaN(x) || isNaN(y)) {
+        console.warn('无法获取有效的拖拽后坐标');
         return;
       }
       
-      const { x, y } = nodeData;
       console.log(`准备更新机器 ${nodeId} 位置: (${x}, ${y})`);
       
       try {
         const response = await machineAPI.update(nodeId, {
-          x: x,
-          y: y,
+          x: Number(x),
+          y: Number(y),
         });
         console.log(`机器 ${nodeId} 位置已更新: (${x}, ${y})`, response.data);
       } catch (error) {
@@ -186,16 +225,34 @@ const Canvas = () => {
 
     // 添加双击删除机器功能
     graph.on('node:dblclick', async (e) => {
-      const { itemId, data } = e;
-      if (!itemId || !data) {
-        console.warn('双击事件中节点数据无效');
+      console.log('双击删除事件触发:', e);
+      
+      const { target } = e;
+      if (!target || target.type !== 'node') {
+        console.warn('双击事件中目标不是节点');
         return;
       }
       
+      const nodeId = target.id;
+      console.log('双击删除节点ID:', nodeId);
+      
+      // 获取节点数据
+      const nodeData = graph.getNodeData(nodeId);
+      console.log('节点数据:', nodeData);
+      
+      if (!nodeData) {
+        console.warn('无法获取节点数据');
+        return;
+      }
+      
+      const machineName = nodeData.label || nodeData.data?.machineData?.name || '未知机器';
+      
       // 确认删除
-      if (window.confirm(`确定要删除机器 "${data.label}" 吗？`)) {
+      if (window.confirm(`确定要删除机器 "${machineName}" 吗？`)) {
         try {
-          await machineAPI.delete(itemId);
+          console.log('开始删除机器:', nodeId);
+          await machineAPI.delete(nodeId);
+          console.log('机器删除成功，刷新数据');
           fetchData();
         } catch (error) {
           console.error('删除机器失败:', error);
@@ -235,8 +292,6 @@ const Canvas = () => {
         type: 'rect',
         label: machine.name,
         data: {
-          x: finalX,
-          y: finalY,
           machineData: machine,
         },
         style: {
